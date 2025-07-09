@@ -1,0 +1,106 @@
+[
+  {
+    "name": "Success - Default vCardId",
+    "request": {
+      "headers": {
+        "x-api-key": "ANY"
+      },
+      "body": {
+        "vCardId": "default"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "entitled": true,
+        "source": "VACS",
+        "entitledAccountRange": {
+          "min": "40281580600000000000",
+          "max": "40281599999999999999"
+        }
+      }
+    }
+  },
+  {
+    "name": "Success - Prefixed vCardId",
+    "request": {
+      "headers": {
+        "x-api-key": "ANY"
+      },
+      "body": {
+        "vCardId": "V-999"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "entitled": false
+      }
+    }
+  },
+  {
+    "name": "Error - Invalid Input",
+    "request": {
+      "headers": {
+        "x-api-key": "ANY"
+      },
+      "body": {
+        "vCardId": "invalid-param"
+      }
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "errorResponse": {
+          "status": 400,
+          "reason": "invalidParameterVCardID",
+          "message": "Invalid input parameter(s)",
+          "details": {
+            "location": "VCardID",
+            "message": "Required field"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "Error - Not Found",
+    "request": {
+      "headers": {
+        "x-api-key": "ANY"
+      },
+      "body": {
+        "vCardId": "not-found"
+      }
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "errorResponse": {
+          "status": 404,
+          "reason": "notFound",
+          "message": "The requested resource doe"
+        }
+      }
+    }
+  },
+  {
+    "name": "Error - Invalid API Key",
+    "request": {
+      "headers": {
+        "x-api-key": "INVALID_API_KEY"
+      },
+      "body": {}
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "errorResponse": {
+          "status": 401,
+          "reason": "unauthorized",
+          "message": "Invalid API Key provided."
+        }
+      }
+    }
+  }
+]
