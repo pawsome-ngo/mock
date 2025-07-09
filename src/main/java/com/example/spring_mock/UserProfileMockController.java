@@ -44,6 +44,7 @@ public class UserProfileMockController {
         private String method;
         private Map<String, String> headers;
         private JsonNode body;
+        private String matchKey; // New field for partial matching
     }
 
     @Data
@@ -126,13 +127,24 @@ public class UserProfileMockController {
 
         // 3. Check if the request body matches
         JsonNode mockBodyNode = mockRequest.getBody();
+        String matchKey = mockRequest.getMatchKey();
 
         // If mock body is null or empty, it matches requests with no body
         if (mockBodyNode == null || mockBodyNode.isNull() || mockBodyNode.isEmpty()) {
             return body == null || body.isNull() || body.isEmpty();
         }
 
-        // If mock body is defined, it must be equal to the request body
-        return Objects.equals(mockBodyNode, body);
+        // If a specific key is provided for matching, perform partial match
+        if (matchKey != null && !matchKey.isEmpty()) {
+            // Ensure both the incoming body and the mock body have the key
+            if (body == null || !body.has(matchKey) || !mockBodyNode.has(matchKey)) {
+                return false;
+            }
+            // Compare only the values of the specified key
+            return Objects.equals(body.get(matchKey), mockBodyNode.get(matchKey));
+        } else {
+            // Otherwise, perform a full body comparison
+            return Objects.equals(mockBodyNode, body);
+        }
     }
 }
