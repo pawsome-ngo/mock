@@ -1,0 +1,123 @@
+{
+    "endpoint": "/api/v1/user/profile",
+    "mocks": [
+        {
+            "request": {
+                "headers": {"x-auth-token": "VALID_TOKEN"},
+                "method": "GET"
+            },
+            "response": {
+                "body": {
+                    "profile": {
+                        "firstName": "John",
+                        "lastName": "Doe",
+                        "joinDate": "2023-01-15T09:30:00Z"
+                    },
+                    "userId": "user123",
+                    "email": "john.doe@example.com",
+                    "username": "john_doe"
+                },
+                "status": 200
+            },
+            "name": "Success - Get User Profile"
+        },
+        {
+            "request": {
+                "headers": {"x-auth-token": "TOKEN_FOR_UNKNOWN_USER"},
+                "method": "GET"
+            },
+            "response": {
+                "body": {
+                    "error": "Not Found",
+                    "message": "The requested user profile was not found."
+                },
+                "status": 404
+            },
+            "name": "Error - User Not Found"
+        },
+        {
+            "request": {
+                "headers": {
+                    "x-auth-token": "VALID_TOKEN",
+                    "Content-Type": "application/json"
+                },
+                "method": "PUT",
+                "body": {"email": "john.doe.new@example.com"}
+            },
+            "response": {
+                "body": {
+                    "updateStatus": "success",
+                    "profile": {
+                        "firstName": "John",
+                        "lastName": "Doe",
+                        "joinDate": "2023-01-15T09:30:00Z"
+                    },
+                    "userId": "user123",
+                    "email": "john.doe.new@example.com",
+                    "username": "john_doe"
+                },
+                "status": 200
+            },
+            "name": "Success - Update User Profile"
+        },
+        {
+            "request": {
+                "headers": {
+                    "x-auth-token": "VALID_TOKEN",
+                    "Content-Type": "application/json"
+                },
+                "method": "PUT",
+                "body": {"email": "not-an-email"}
+            },
+            "response": {
+                "body": {
+                    "error": "Bad Request",
+                    "message": "Invalid email format provided."
+                },
+                "status": 400
+            },
+            "name": "Error - Invalid Update Data"
+        },
+        {
+            "request": {
+                "headers": {"x-auth-token": "VALID_TOKEN"},
+                "method": "DELETE"
+            },
+            "response": {
+                "body": null,
+                "status": 204
+            },
+            "name": "Success - Delete User Profile"
+        },
+        {
+            "request": {
+                "headers": {},
+                "method": "GET"
+            },
+            "response": {
+                "body": {
+                    "error": "Unauthorized",
+                    "message": "Authentication token is missing or invalid."
+                },
+                "status": 401
+            },
+            "name": "Error - Unauthorized"
+        },
+        {
+            "request": {
+                "headers": {},
+                "method": "GET",
+                "matchKey": "email",
+                "body": {"email": "john.doe.new@example.com"}
+            },
+            "response": {
+                "body": {
+                    "error": "Unauthorized",
+                    "message": "Authentication token is missing or invalid."
+                },
+                "status": 404
+            },
+            "name": "Error - Unauthorized (Copy)"
+        }
+    ]
+}

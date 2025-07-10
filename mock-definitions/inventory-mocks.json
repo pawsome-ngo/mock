@@ -1,0 +1,43 @@
+{
+  "endpoint": "/api/v1/inventory/status",
+  "mocks": [
+    {
+      "name": "Success - Get Inventory Status",
+      "request": {
+        "method": "GET",
+        "headers": {
+          "x-api-key": "VALID_KEY"
+        },
+        "matchKey": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "itemId": "item-5678",
+          "status": "In Stock",
+          "quantity": 150,
+          "location": "Warehouse A"
+        }
+      }
+    },
+    {
+      "name": "Error - Item Not Found",
+      "request": {
+        "method": "GET",
+        "headers": {
+          "x-api-key": "UNKNOWN_ITEM_KEY"
+        },
+        "matchKey": null,
+        "body": null
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Not Found",
+          "message": "The requested inventory item was not found."
+        }
+      }
+    }
+  ]
+}

@@ -49,20 +49,17 @@ public class MockController {
         return "redirect:/list";
     }
 
-    // New method to handle deleting an API
     @GetMapping("/delete/{id}")
     public String deleteApi(@PathVariable Long id) {
         mockApiRepository.deleteById(id);
         return "redirect:/list";
     }
 
-    @RequestMapping("/**")
+    // UPDATED MAPPING: Changed from "/**" to "/db-mock/**" to avoid conflicts.
+    @RequestMapping("/db-mock/**")
     public ResponseEntity<String> mock(HttpServletRequest request, @RequestBody(required = false) String body) {
-        String endpoint = request.getRequestURI();
-        // Exclude the delete endpoint from mock handling
-        if (endpoint.startsWith("/delete/")) {
-            return ResponseEntity.status(404).body("Not a mock endpoint.");
-        }
+        // The endpoint now needs to be extracted by removing the "/db-mock" prefix.
+        String endpoint = request.getRequestURI().replace("/db-mock", "");
         String requestType = request.getMethod();
 
         if (body != null && !body.isEmpty()) {
