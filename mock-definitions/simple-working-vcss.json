@@ -1,0 +1,16 @@
+{
+    "endpoint": "/simple/working/vcss",
+    "mocks": [{
+        "request": {
+            "headers": {"x-api-id": "VALID_TOKEN"},
+            "method": "POST",
+            "matchKey": "email",
+            "body": {"email": "john.doe.new@example.com"}
+        },
+        "response": {
+            "body": {"email": "john.doe.new@example.com"},
+            "status": 200
+        },
+        "name": "Error - Unauthorized Copy"
+    }]
+}

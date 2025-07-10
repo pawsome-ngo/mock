@@ -3,275 +3,51 @@ package com.example.spring_mock;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONTokener;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import lombok.Data;
 
-@Controller
+/**
+ * This controller is responsible for handling incoming API requests and serving mock responses
+ * based on the definitions found in the JSON files. It acts as the core engine for the mock server.
+ */
+@RestController
 public class JsonMockController {
 
-    // Injects the path from application.properties
-    @Value("${mock.files.path}")
-    private String mockFilesPath;
-
-    private final Map<String, JSONArray> endpointMocks = new ConcurrentHashMap<>();
+    /**
+     * Injects the service that manages all file system operations for the mock JSON files.
+     */
+    @Autowired
+    private MockFileService mockFileService;
 
     /**
-     * This method now reads from the external filesystem path.
+     * A "catch-all" endpoint that intercepts all incoming requests that do not match a more specific
+     * controller (like the UI endpoints in MockControllerUI). It acts as the engine for the mock server.
+     * It dynamically finds the appropriate mock response by matching the request's URI, method, headers, and body.
+     *
+     * @param request The incoming HttpServletRequest, used to get the URI and method.
+     * @param headers A map of all headers from the incoming request.
+     * @param requestBodyString The raw request body as a string. It is optional.
+     * @return A ResponseEntity containing the mock response body and status code, or a 404 error if no match is found.
      */
-    @PostConstruct
-    public void init() {
-        try {
-            File folder = new File(mockFilesPath);
-            // Create the directory if it doesn't exist
-            if (!folder.exists()) {
-                folder.mkdirs();
-            }
-
-            File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-
-            if (listOfFiles == null) return;
-
-            for (File file : listOfFiles) {
-                if (file.isFile()) {
-                    try (FileReader reader = new FileReader(file)) {
-                        JSONTokener tokener = new JSONTokener(reader);
-                        JSONObject root = new JSONObject(tokener);
-                        String endpoint = root.getString("endpoint");
-                        JSONArray mocks = root.getJSONArray("mocks");
-                        endpointMocks.put(endpoint, mocks);
-                        System.out.println("Loaded mock for endpoint: " + endpoint + " from " + file.getName());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @GetMapping("/json-mocks")
-    public String listJsonMocks(Model model) {
-        model.addAttribute("endpoints", endpointMocks.keySet());
-        return "json-mocks";
-    }
-
-    @GetMapping("/json-mocks/details")
-    public String showMockDetails(@RequestParam String endpoint, Model model) {
-        JSONArray mocks = endpointMocks.get(endpoint);
-        if (mocks == null) {
-            return "redirect:/json-mocks";
-        }
-
-        List<Map<String, String>> mockDetails = new ArrayList<>();
-        for (int i = 0; i < mocks.length(); i++) {
-            JSONObject mock = mocks.getJSONObject(i);
-            String name = mock.optString("name", "Unnamed Mock Case #" + (i + 1));
-            String content = mock.toString(4);
-
-            Map<String, String> detailMap = new HashMap<>();
-            detailMap.put("name", name);
-            detailMap.put("content", content);
-            mockDetails.add(detailMap);
-        }
-
-        model.addAttribute("endpoint", endpoint);
-        model.addAttribute("mockDetails", mockDetails);
-        return "json-mock-details";
-    }
-
-    @Data
-    private static class AddMockPayload {
-        private String endpoint;
-        private String newMockJson;
-    }
-
-    @Data
-    private static class CreateEndpointPayload {
-        private String endpoint;
-    }
-
-    @Data
-    private static class DeleteMockPayload {
-        private String endpoint;
-        private int index;
-    }
-
-    @PostMapping("/json-mocks/add")
-    @ResponseBody
-    public ResponseEntity<String> addMock(@RequestBody AddMockPayload payload) {
-        try {
-            String fileName = findFileNameForEndpoint(payload.getEndpoint());
-            if (fileName == null) {
-                return new ResponseEntity<>("{\"error\": \"Could not find file for endpoint.\"}", HttpStatus.NOT_FOUND);
-            }
-
-            Path filePath = Paths.get(mockFilesPath, fileName);
-            File file = filePath.toFile();
-
-            String content = new String(Files.readAllBytes(filePath));
-            JSONObject root = new JSONObject(content);
-            JSONArray mocks = root.getJSONArray("mocks");
-
-            JSONObject newMock = new JSONObject(payload.getNewMockJson());
-            mocks.put(newMock);
-
-            try (FileWriter fileWriter = new FileWriter(file)) {
-                fileWriter.write(root.toString(4));
-            }
-
-            endpointMocks.put(payload.getEndpoint(), mocks);
-
-            return new ResponseEntity<>("{\"message\": \"Mock added successfully and saved permanently.\"}", HttpStatus.OK);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("{\"error\": \"Failed to add mock: " + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PostMapping("/json-mocks/create")
-    @ResponseBody
-    public ResponseEntity<String> createEndpoint(@RequestBody CreateEndpointPayload payload) {
-        String endpoint = payload.getEndpoint();
-        if (endpoint == null || endpoint.trim().isEmpty()) {
-            return new ResponseEntity<>("{\"error\": \"Endpoint cannot be empty.\"}", HttpStatus.BAD_REQUEST);
-        }
-
-        String fileName = endpoint.trim()
-                .replaceAll("^/|/$", "")
-                .replaceAll("/", "-") + ".json";
-
-        Path filePath = Paths.get(mockFilesPath, fileName);
-        File file = filePath.toFile();
-
-        if (file.exists()) {
-            return new ResponseEntity<>("{\"error\": \"A mock file for this endpoint already exists.\"}", HttpStatus.CONFLICT);
-        }
-
-        try {
-            JSONObject root = new JSONObject();
-            root.put("endpoint", endpoint);
-            root.put("mocks", new JSONArray());
-
-            try (FileWriter fileWriter = new FileWriter(file)) {
-                fileWriter.write(root.toString(4));
-            }
-
-            endpointMocks.put(endpoint, new JSONArray());
-
-            return new ResponseEntity<>("{\"message\": \"Endpoint created successfully.\"}", HttpStatus.CREATED);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("{\"error\": \"Failed to create mock file.\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * NEW METHOD: Deletes an entire endpoint file.
-     */
-    @PostMapping("/json-mocks/delete-endpoint")
-    @ResponseBody
-    public ResponseEntity<String> deleteEndpoint(@RequestBody CreateEndpointPayload payload) {
-        try {
-            String fileName = findFileNameForEndpoint(payload.getEndpoint());
-            if (fileName == null) {
-                return new ResponseEntity<>("{\"error\": \"Could not find file for endpoint.\"}", HttpStatus.NOT_FOUND);
-            }
-            Path filePath = Paths.get(mockFilesPath, fileName);
-            Files.delete(filePath);
-            endpointMocks.remove(payload.getEndpoint());
-            return new ResponseEntity<>("{\"message\": \"Endpoint deleted successfully.\"}", HttpStatus.OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("{\"error\": \"Failed to delete endpoint file.\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * NEW METHOD: Deletes a specific mock case from within a file.
-     */
-    @PostMapping("/json-mocks/delete-mock")
-    @ResponseBody
-    public ResponseEntity<String> deleteMockCase(@RequestBody DeleteMockPayload payload) {
-        try {
-            String fileName = findFileNameForEndpoint(payload.getEndpoint());
-            if (fileName == null) {
-                return new ResponseEntity<>("{\"error\": \"Could not find file for endpoint.\"}", HttpStatus.NOT_FOUND);
-            }
-            Path filePath = Paths.get(mockFilesPath, fileName);
-            File file = filePath.toFile();
-
-            String content = new String(Files.readAllBytes(filePath));
-            JSONObject root = new JSONObject(content);
-            JSONArray mocks = root.getJSONArray("mocks");
-
-            if (payload.getIndex() >= 0 && payload.getIndex() < mocks.length()) {
-                mocks.remove(payload.getIndex());
-            } else {
-                return new ResponseEntity<>("{\"error\": \"Invalid mock index.\"}", HttpStatus.BAD_REQUEST);
-            }
-
-            try (FileWriter fileWriter = new FileWriter(file)) {
-                fileWriter.write(root.toString(4));
-            }
-
-            endpointMocks.put(payload.getEndpoint(), mocks);
-
-            return new ResponseEntity<>("{\"message\": \"Mock case deleted successfully.\"}", HttpStatus.OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("{\"error\": \"Failed to delete mock case.\"}", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private String findFileNameForEndpoint(String targetEndpoint) throws IOException {
-        File folder = new File(mockFilesPath);
-        File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-        if (listOfFiles == null) return null;
-
-        for (File file : listOfFiles) {
-            try (FileReader reader = new FileReader(file)) {
-                JSONTokener tokener = new JSONTokener(reader);
-                JSONObject root = new JSONObject(tokener);
-                if (targetEndpoint.equals(root.optString("endpoint"))) {
-                    return file.getName();
-                }
-            }
-        }
-        return null;
-    }
-
-    @RequestMapping(value = {"/api/**", "/ics-management/**"})
-    @ResponseBody
+    @RequestMapping("/**")
     public ResponseEntity<String> handleDynamicMock(
             HttpServletRequest request,
             @RequestHeader Map<String, String> headers,
             @RequestBody(required = false) String requestBodyString) {
 
         String requestURI = request.getRequestURI();
-        JSONArray mocks = endpointMocks.get(requestURI);
+        JSONArray mocks = mockFileService.getMocksForEndpoint(requestURI);
 
+        // If no mock file is configured for the requested endpoint, return 404.
         if (mocks == null) {
             return new ResponseEntity<>("{\"error\": \"No mock definition found for endpoint: " + requestURI + "\"}", HttpStatus.NOT_FOUND);
         }
@@ -279,16 +55,20 @@ public class JsonMockController {
         String requestMethod = request.getMethod();
         JSONObject requestBody = null;
         try {
+            // Safely parse the request body string into a JSONObject.
             if (requestBodyString != null && !requestBodyString.isEmpty()) {
                 requestBody = new JSONObject(requestBodyString);
             }
         } catch (JSONException e) {
+            // If the body is not valid JSON, it won't match any mock that expects a JSON body.
             requestBody = null;
         }
 
+        // Loop through each mock case defined for the endpoint to find a match.
         for (int i = 0; i < mocks.length(); i++) {
             JSONObject mock = mocks.getJSONObject(i);
             if (matches(mock, requestMethod, headers, requestBody)) {
+                // If a match is found, construct and return the defined response.
                 JSONObject response = mock.getJSONObject("response");
                 int status = response.getInt("status");
                 String responseBody = response.get("body").toString();
@@ -296,39 +76,58 @@ public class JsonMockController {
             }
         }
 
+        // If the loop completes without finding a match, return a 404 error.
         return new ResponseEntity<>("{\"error\": \"No matching mock pattern found for this request.\"}", HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * Checks if an incoming request's properties match a given mock definition.
+     *
+     * @param mock The JSONObject representing a single mock case from the JSON file.
+     * @param method The HTTP method of the incoming request (e.g., "GET", "POST").
+     * @param headers The headers of the incoming request.
+     * @param body The parsed JSONObject of the incoming request body.
+     * @return true if all conditions of the mock are met, false otherwise.
+     */
     private boolean matches(JSONObject mock, String method, Map<String, String> headers, JSONObject body) {
         JSONObject mockRequest = mock.getJSONObject("request");
         String mockMethod = mockRequest.getString("method");
 
+        // 1. Check if the HTTP method matches.
         if (!Objects.equals(mockMethod, method)) {
             return false;
         }
 
+        // 2. Check if all headers defined in the mock are present and have matching values.
         JSONObject mockHeaders = mockRequest.getJSONObject("headers");
         for (String key : mockHeaders.keySet()) {
+            // Headers are case-insensitive, so we check against the lowercase key.
             if (!Objects.equals(mockHeaders.getString(key), headers.get(key.toLowerCase()))) {
                 return false;
             }
         }
 
+        // 3. Check if the request body matches based on the defined strategy.
         JSONObject mockBody = mockRequest.optJSONObject("body");
         String matchKey = mockRequest.optString("matchKey", null);
 
+        // If the mock expects no body, the request must also have no body.
         if (mockBody == null || mockBody.isEmpty()) {
             return body == null || body.isEmpty();
         }
 
+        // If a 'matchKey' is specified, perform a partial match on that key only.
         if (matchKey != null && !matchKey.equals("null") && !matchKey.isEmpty()) {
+            // The key must exist in both the mock and the incoming request body.
             if (body == null || !body.has(matchKey) || !mockBody.has(matchKey)) {
                 return false;
             }
+            // Compare the values of the specified key.
             Object actualValue = body.get(matchKey);
             Object expectedValue = mockBody.get(matchKey);
             return Objects.equals(actualValue.toString(), expectedValue.toString());
         } else {
+            // If no 'matchKey' is specified, perform a deep, order-independent comparison of the entire JSON body.
             return body != null && mockBody.similar(body);
         }
     }
