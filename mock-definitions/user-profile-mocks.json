@@ -102,22 +102,6 @@
                 "status": 401
             },
             "name": "Error - Unauthorized"
-        },
-        {
-            "request": {
-                "headers": {},
-                "method": "GET",
-                "matchKey": "email",
-                "body": {"email": "john.doe.new@example.com"}
-            },
-            "response": {
-                "body": {
-                    "error": "Unauthorized",
-                    "message": "Authentication token is missing or invalid."
-                },
-                "status": 404
-            },
-            "name": "Error - Unauthorized (Copy)"
         }
     ]
 }

@@ -1,0 +1,16 @@
+{
+    "endpoint": "/test/work",
+    "mocks": [{
+        "request": {
+            "headers": {"x-api-key": "VALID_TOKEN"},
+            "method": "GET",
+            "matchKey": "email",
+            "body": {"email": "john.doe.new@example.com"}
+        },
+        "response": {
+            "body": {"email": "john.doe.new@example.com"},
+            "status": 200
+        },
+        "name": "Error - Unauthorized Copy"
+    }]
+}
