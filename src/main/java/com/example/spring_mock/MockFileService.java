@@ -104,6 +104,36 @@ public class MockFileService {
         endpointMocks.put(endpoint, mocks);
     }
 
+    /**
+     * NEW METHOD: Updates a specific mock case in a file.
+     * @param endpoint The endpoint URL to identify the file.
+     * @param index The index of the mock case to update in the array.
+     * @param updatedMockJson The new JSON content for the mock case.
+     * @throws IOException If there's an error reading or writing the file.
+     */
+    public void updateMockInFile(String endpoint, int index, String updatedMockJson) throws IOException {
+        String fileName = findFileNameForEndpoint(endpoint);
+        if (fileName == null) {
+            throw new IOException("Could not find file for endpoint.");
+        }
+        Path filePath = Paths.get(mockFilesPath, fileName);
+        String content = new String(Files.readAllBytes(filePath));
+        JSONObject root = new JSONObject(content);
+        JSONArray mocks = root.getJSONArray("mocks");
+
+        if (index >= 0 && index < mocks.length()) {
+            // Replace the object at the specified index with the new one.
+            mocks.put(index, new JSONObject(updatedMockJson));
+        } else {
+            throw new IndexOutOfBoundsException("Invalid mock index for update.");
+        }
+
+        try (FileWriter fileWriter = new FileWriter(filePath.toFile())) {
+            fileWriter.write(root.toString(4));
+        }
+        endpointMocks.put(endpoint, mocks);
+    }
+
 
     public void deleteEndpointFile(String endpoint) throws IOException {
         String fileName = findFileNameForEndpoint(endpoint);

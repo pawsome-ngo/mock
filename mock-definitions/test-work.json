@@ -5,7 +5,7 @@
             "headers": {},
             "method": "GET",
             "matchKey": null,
-            "body": {"email": "john.doe.new@example.com"}
+            "body": {"email": "john.doe.new@example.org"}
         },
         "response": {
             "body": null,

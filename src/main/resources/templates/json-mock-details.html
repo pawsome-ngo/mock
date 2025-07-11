@@ -33,11 +33,18 @@
                 <div class="accordion-body">
                     <pre><code th:text="${mock.content}"></code></pre>
                     <div class="text-end mt-2">
+                        <!-- NEW: Edit Button -->
+                        <button class="btn btn-secondary btn-sm"
+                                th:attr="data-bs-endpoint=${endpoint}, data-bs-index=${iterStat.index}, 'data-bs-content'=${mock.content}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editMockModal">
+                            Edit
+                        </button>
                         <button class="btn btn-danger btn-sm"
                                 th:attr="data-bs-endpoint=${endpoint}, data-bs-index=${iterStat.index}"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteMockCaseModal">
-                            Delete this Mock Case
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -62,49 +69,102 @@
             </div>
             <div class="modal-body">
                 <form id="addMockForm">
-                    <input type="hidden" id="endpoint" th:value="${endpoint}">
+                    <input type="hidden" id="addEndpoint" th:value="${endpoint}">
                     <div class="mb-3">
-                        <label for="mockName" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="mockName" required>
+                        <label for="addMockName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="addMockName" required>
                     </div>
                     <hr>
                     <h5>Request</h5>
                     <div class="mb-3">
-                        <label for="mockMethod" class="form-label">Method</label>
-                        <select class="form-select" id="mockMethod">
-                            <option>GET</option>
-                            <option>POST</option>
-                            <option>PUT</option>
-                            <option>DELETE</option>
+                        <label for="addMockMethod" class="form-label">Method</label>
+                        <select class="form-select" id="addMockMethod">
+                            <option>GET</option> <option>POST</option> <option>PUT</option> <option>DELETE</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="mockHeaders" class="form-label">Headers (JSON)</label>
-                        <textarea class="form-control" id="mockHeaders" rows="3">{}</textarea>
+                        <label for="addMockHeaders" class="form-label">Headers (JSON)</label>
+                        <textarea class="form-control" id="addMockHeaders" rows="3">{}</textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="mockMatchKey" class="form-label">Match Key (leave blank for full body match)</label>
-                        <input type="text" class="form-control" id="mockMatchKey">
+                        <label for="addMockMatchKey" class="form-label">Match Key (leave blank for full body match)</label>
+                        <input type="text" class="form-control" id="addMockMatchKey">
                     </div>
                     <div class="mb-3">
-                        <label for="mockRequestBody" class="form-label">Request Body (JSON)</label>
-                        <textarea class="form-control" id="mockRequestBody" rows="5"></textarea>
+                        <label for="addMockRequestBody" class="form-label">Request Body (JSON)</label>
+                        <textarea class="form-control" id="addMockRequestBody" rows="5"></textarea>
                     </div>
                     <hr>
                     <h5>Response</h5>
                     <div class="mb-3">
-                        <label for="mockResponseStatus" class="form-label">Status Code</label>
-                        <input type="number" class="form-control" id="mockResponseStatus" value="200" required>
+                        <label for="addMockResponseStatus" class="form-label">Status Code</label>
+                        <input type="number" class="form-control" id="addMockResponseStatus" value="200" required>
                     </div>
                     <div class="mb-3">
-                        <label for="mockResponseBody" class="form-label">Response Body (JSON)</label>
-                        <textarea class="form-control" id="mockResponseBody" rows="5"></textarea>
+                        <label for="addMockResponseBody" class="form-label">Response Body (JSON)</label>
+                        <textarea class="form-control" id="addMockResponseBody" rows="5"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="saveNewMock()">Save Mock</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: Edit Mock Modal -->
+<div class="modal fade" id="editMockModal" tabindex="-1" aria-labelledby="editMockModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMockModalLabel">Edit Mock Case</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMockForm">
+                    <input type="hidden" id="editEndpoint">
+                    <input type="hidden" id="editMockIndex">
+                    <div class="mb-3">
+                        <label for="editMockName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="editMockName" required>
+                    </div>
+                    <hr>
+                    <h5>Request</h5>
+                    <div class="mb-3">
+                        <label for="editMockMethod" class="form-label">Method</label>
+                        <select class="form-select" id="editMockMethod">
+                            <option>GET</option> <option>POST</option> <option>PUT</option> <option>DELETE</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMockHeaders" class="form-label">Headers (JSON)</label>
+                        <textarea class="form-control" id="editMockHeaders" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMockMatchKey" class="form-label">Match Key</label>
+                        <input type="text" class="form-control" id="editMockMatchKey">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMockRequestBody" class="form-label">Request Body (JSON)</label>
+                        <textarea class="form-control" id="editMockRequestBody" rows="5"></textarea>
+                    </div>
+                    <hr>
+                    <h5>Response</h5>
+                    <div class="mb-3">
+                        <label for="editMockResponseStatus" class="form-label">Status Code</label>
+                        <input type="number" class="form-control" id="editMockResponseStatus" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMockResponseBody" class="form-label">Response Body (JSON)</label>
+                        <textarea class="form-control" id="editMockResponseBody" rows="5"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateMock()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -166,54 +226,55 @@
             const lastMockContent = mockDetails[mockDetails.length - 1].content;
             try {
                 const lastMock = JSON.parse(lastMockContent);
-                document.getElementById('mockName').value = lastMock.name + " (Copy)";
-                document.getElementById('mockMethod').value = lastMock.request.method;
-                document.getElementById('mockHeaders').value = JSON.stringify(lastMock.request.headers || {}, null, 2);
-                document.getElementById('mockMatchKey').value = lastMock.request.matchKey || '';
-                document.getElementById('mockRequestBody').value = lastMock.request.body ? JSON.stringify(lastMock.request.body, null, 2) : '';
-                document.getElementById('mockResponseStatus').value = lastMock.response.status;
-                document.getElementById('mockResponseBody').value = lastMock.response.body ? JSON.stringify(lastMock.response.body, null, 2) : '';
+                document.getElementById('addMockName').value = lastMock.name + " (Copy)";
+                document.getElementById('addMockMethod').value = lastMock.request.method;
+                document.getElementById('addMockHeaders').value = JSON.stringify(lastMock.request.headers || {}, null, 2);
+                document.getElementById('addMockMatchKey').value = lastMock.request.matchKey || '';
+                document.getElementById('addMockRequestBody').value = lastMock.request.body ? JSON.stringify(lastMock.request.body, null, 2) : '';
+                document.getElementById('addMockResponseStatus').value = lastMock.response.status;
+                document.getElementById('addMockResponseBody').value = lastMock.response.body ? JSON.stringify(lastMock.response.body, null, 2) : '';
             } catch (e) {
                 console.error("Failed to parse last mock, leaving form blank.", e);
                 document.getElementById('addMockForm').reset();
-                document.getElementById('mockHeaders').value = '{}';
+                document.getElementById('addMockHeaders').value = '{}';
             }
         } else {
             document.getElementById('addMockForm').reset();
-            document.getElementById('mockHeaders').value = '{}';
+            document.getElementById('addMockHeaders').value = '{}';
+        }
+    });
+
+    // NEW: Event listener for the Edit Modal
+    const editMockModal = document.getElementById('editMockModal');
+    editMockModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const endpoint = button.getAttribute('data-bs-endpoint');
+        const index = button.getAttribute('data-bs-index');
+        const content = button.getAttribute('data-bs-content');
+
+        try {
+            const mock = JSON.parse(content);
+            document.getElementById('editEndpoint').value = endpoint;
+            document.getElementById('editMockIndex').value = index;
+            document.getElementById('editMockName').value = mock.name;
+            document.getElementById('editMockMethod').value = mock.request.method;
+            document.getElementById('editMockHeaders').value = JSON.stringify(mock.request.headers || {}, null, 2);
+            document.getElementById('editMockMatchKey').value = mock.request.matchKey || '';
+            document.getElementById('editMockRequestBody').value = mock.request.body ? JSON.stringify(mock.request.body, null, 2) : '';
+            document.getElementById('editMockResponseStatus').value = mock.response.status;
+            document.getElementById('editMockResponseBody').value = mock.response.body ? JSON.stringify(mock.response.body, null, 2) : '';
+        } catch (e) {
+            console.error("Failed to parse mock content for editing.", e);
+            alert("Error: Could not load mock data for editing.");
         }
     });
 
     function saveNewMock() {
-        const parseJsonOrNull = (elementId) => {
-            const content = document.getElementById(elementId).value;
-            if (!content.trim()) return null;
-            try { return JSON.parse(content); } catch (e) {
-                alert(`Invalid JSON in ${elementId}`);
-                return 'INVALID_JSON';
-            }
-        };
-        const headers = parseJsonOrNull('mockHeaders');
-        const requestBody = parseJsonOrNull('mockRequestBody');
-        const responseBody = parseJsonOrNull('mockResponseBody');
+        const newMock = buildMockObjectFromForm('add');
+        if (!newMock) return;
 
-        if (headers === 'INVALID_JSON' || requestBody === 'INVALID_JSON' || responseBody === 'INVALID_JSON') return;
-
-        const newMock = {
-            name: document.getElementById('mockName').value,
-            request: {
-                method: document.getElementById('mockMethod').value,
-                headers: headers || {},
-                matchKey: document.getElementById('mockMatchKey').value || null,
-                body: requestBody
-            },
-            response: {
-                status: parseInt(document.getElementById('mockResponseStatus').value, 10),
-                body: responseBody
-            }
-        };
         const payload = {
-            endpoint: document.getElementById('endpoint').value,
+            endpoint: document.getElementById('addEndpoint').value,
             newMockJson: JSON.stringify(newMock)
         };
         fetch('/add', {
@@ -227,6 +288,59 @@
             window.location.reload();
         })
         .catch(handleError);
+    }
+
+    // NEW: Function to save changes from the Edit Modal
+    function updateMock() {
+        const updatedMock = buildMockObjectFromForm('edit');
+        if (!updatedMock) return;
+
+        const payload = {
+            endpoint: document.getElementById('editEndpoint').value,
+            index: parseInt(document.getElementById('editMockIndex').value, 10),
+            updatedMockJson: JSON.stringify(updatedMock)
+        };
+        fetch('/update-mock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+        .then(handleResponse)
+        .then(() => {
+            alert('Mock updated successfully!');
+            window.location.reload();
+        })
+        .catch(handleError);
+    }
+
+    function buildMockObjectFromForm(prefix) {
+        const parseJsonOrNull = (elementId) => {
+            const content = document.getElementById(elementId).value;
+            if (!content.trim()) return null;
+            try { return JSON.parse(content); } catch (e) {
+                alert(`Invalid JSON in ${elementId}`);
+                return 'INVALID_JSON';
+            }
+        };
+        const headers = parseJsonOrNull(prefix + 'MockHeaders');
+        const requestBody = parseJsonOrNull(prefix + 'MockRequestBody');
+        const responseBody = parseJsonOrNull(prefix + 'MockResponseBody');
+
+        if (headers === 'INVALID_JSON' || requestBody === 'INVALID_JSON' || responseBody === 'INVALID_JSON') return null;
+
+        return {
+            name: document.getElementById(prefix + 'MockName').value,
+            request: {
+                method: document.getElementById(prefix + 'MockMethod').value,
+                headers: headers || {},
+                matchKey: document.getElementById(prefix + 'MockMatchKey').value || null,
+                body: requestBody
+            },
+            response: {
+                status: parseInt(document.getElementById(prefix + 'MockResponseStatus').value, 10),
+                body: responseBody
+            }
+        };
     }
 
     function handleResponse(response) {

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-public class MockControllerUI {
+public class MockAdminController {
 
     @Autowired
     private MockFileService mockFileService;
@@ -72,6 +72,13 @@ public class MockControllerUI {
         private int index;
     }
 
+    @Data
+    private static class UpdateMockPayload {
+        private String endpoint;
+        private int index;
+        private String updatedMockJson;
+    }
+
     @PostMapping("/create")
     @ResponseBody
     public ResponseEntity<String> createEndpoint(@RequestBody CreateEndpointPayload payload) {
@@ -89,6 +96,20 @@ public class MockControllerUI {
         try {
             mockFileService.addMockToFile(payload.getEndpoint(), payload.getNewMockJson());
             return new ResponseEntity<>("{\"message\": \"Mock added successfully.\"}", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>("{\"error\": \"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * NEW METHOD: Handles updating an existing mock case.
+     */
+    @PostMapping("/update-mock")
+    @ResponseBody
+    public ResponseEntity<String> updateMock(@RequestBody UpdateMockPayload payload) {
+        try {
+            mockFileService.updateMockInFile(payload.getEndpoint(), payload.getIndex(), payload.getUpdatedMockJson());
+            return new ResponseEntity<>("{\"message\": \"Mock updated successfully.\"}", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>("{\"error\": \"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
         }
