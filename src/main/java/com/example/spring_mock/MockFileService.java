@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +28,7 @@ public class MockFileService {
     private String mockFilesPath;
 
     private final Map<String, JSONArray> endpointMocks = new ConcurrentHashMap<>();
+    private final Map<String, String> endpointToFileMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -41,33 +45,57 @@ public class MockFileService {
 
     public void loadMocks() throws IOException {
         endpointMocks.clear();
-        File folder = new File(mockFilesPath);
-        File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-        if (listOfFiles == null) return;
+        endpointToFileMap.clear();
+        File baseDir = new File(mockFilesPath);
+        scanDirectory(baseDir, "");
+    }
 
-        for (File file : listOfFiles) {
-            try (FileReader reader = new FileReader(file)) {
-                JSONTokener tokener = new JSONTokener(reader);
-                JSONObject root = new JSONObject(tokener);
-                String endpoint = root.getString("endpoint");
-                JSONArray mocks = root.getJSONArray("mocks");
-                endpointMocks.put(endpoint, mocks);
-                System.out.println("Loaded mock for endpoint: " + endpoint + " from " + file.getName());
+    private void scanDirectory(File dir, String currentPath) throws IOException {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectory(file, currentPath + file.getName() + "/");
+            } else if (file.getName().toLowerCase().endsWith(".json")) {
+                try (FileReader reader = new FileReader(file)) {
+                    JSONTokener tokener = new JSONTokener(reader);
+                    JSONObject root = new JSONObject(tokener);
+                    String endpoint = root.getString("endpoint");
+                    JSONArray mocks = root.getJSONArray("mocks");
+                    endpointMocks.put(endpoint, mocks);
+                    endpointToFileMap.put(endpoint, currentPath + file.getName());
+                    System.out.println("Loaded mock for endpoint: " + endpoint + " from " + currentPath + file.getName());
+                }
             }
         }
     }
 
-    public Set<String> getEndpoints() {
-        return endpointMocks.keySet();
+    public Map<String, List<String>> getCategorizedEndpoints() {
+        Map<String, List<String>> categorized = new HashMap<>();
+        endpointToFileMap.forEach((endpoint, filePath) -> {
+            String category = new File(filePath).getParent();
+            if (category == null) {
+                category = "Uncategorized";
+            }
+            categorized.computeIfAbsent(category, k -> new ArrayList<>()).add(endpoint);
+        });
+        return categorized;
     }
 
     public JSONArray getMocksForEndpoint(String endpoint) {
         return endpointMocks.get(endpoint);
     }
 
-    public void createEndpointFile(String endpoint) throws IOException {
+    public void createEndpointFile(String category, String endpoint) throws IOException {
+        // Create category subfolder if it doesn't exist
+        Path categoryPath = Paths.get(mockFilesPath, category);
+        if (!Files.exists(categoryPath)) {
+            Files.createDirectories(categoryPath);
+        }
+
         String fileName = endpoint.trim().replaceAll("^/|/$", "").replaceAll("/", "-") + ".json";
-        Path filePath = Paths.get(mockFilesPath, fileName);
+        Path filePath = categoryPath.resolve(fileName);
         File file = filePath.toFile();
 
         if (file.exists()) {
@@ -83,15 +111,15 @@ public class MockFileService {
         }
 
         endpointMocks.put(endpoint, new JSONArray());
+        endpointToFileMap.put(endpoint, category + "/" + fileName);
     }
 
     public void addMockToFile(String endpoint, String newMockJson) throws IOException {
-        String fileName = findFileNameForEndpoint(endpoint);
-        if (fileName == null) {
+        String filePathStr = findFileNameForEndpoint(endpoint);
+        if (filePathStr == null) {
             throw new IOException("Could not find file for endpoint.");
         }
-
-        Path filePath = Paths.get(mockFilesPath, fileName);
+        Path filePath = Paths.get(mockFilesPath, filePathStr);
         String content = new String(Files.readAllBytes(filePath));
         JSONObject root = new JSONObject(content);
         JSONArray mocks = root.getJSONArray("mocks");
@@ -100,29 +128,20 @@ public class MockFileService {
         try (FileWriter fileWriter = new FileWriter(filePath.toFile())) {
             fileWriter.write(root.toString(4));
         }
-
         endpointMocks.put(endpoint, mocks);
     }
 
-    /**
-     * NEW METHOD: Updates a specific mock case in a file.
-     * @param endpoint The endpoint URL to identify the file.
-     * @param index The index of the mock case to update in the array.
-     * @param updatedMockJson The new JSON content for the mock case.
-     * @throws IOException If there's an error reading or writing the file.
-     */
     public void updateMockInFile(String endpoint, int index, String updatedMockJson) throws IOException {
-        String fileName = findFileNameForEndpoint(endpoint);
-        if (fileName == null) {
+        String filePathStr = findFileNameForEndpoint(endpoint);
+        if (filePathStr == null) {
             throw new IOException("Could not find file for endpoint.");
         }
-        Path filePath = Paths.get(mockFilesPath, fileName);
+        Path filePath = Paths.get(mockFilesPath, filePathStr);
         String content = new String(Files.readAllBytes(filePath));
         JSONObject root = new JSONObject(content);
         JSONArray mocks = root.getJSONArray("mocks");
 
         if (index >= 0 && index < mocks.length()) {
-            // Replace the object at the specified index with the new one.
             mocks.put(index, new JSONObject(updatedMockJson));
         } else {
             throw new IndexOutOfBoundsException("Invalid mock index for update.");
@@ -134,23 +153,23 @@ public class MockFileService {
         endpointMocks.put(endpoint, mocks);
     }
 
-
     public void deleteEndpointFile(String endpoint) throws IOException {
-        String fileName = findFileNameForEndpoint(endpoint);
-        if (fileName == null) {
+        String filePathStr = findFileNameForEndpoint(endpoint);
+        if (filePathStr == null) {
             throw new IOException("Could not find file for endpoint.");
         }
-        Path filePath = Paths.get(mockFilesPath, fileName);
+        Path filePath = Paths.get(mockFilesPath, filePathStr);
         Files.delete(filePath);
         endpointMocks.remove(endpoint);
+        endpointToFileMap.remove(endpoint);
     }
 
     public void deleteMockFromFile(String endpoint, int index) throws IOException {
-        String fileName = findFileNameForEndpoint(endpoint);
-        if (fileName == null) {
+        String filePathStr = findFileNameForEndpoint(endpoint);
+        if (filePathStr == null) {
             throw new IOException("Could not find file for endpoint.");
         }
-        Path filePath = Paths.get(mockFilesPath, fileName);
+        Path filePath = Paths.get(mockFilesPath, filePathStr);
         String content = new String(Files.readAllBytes(filePath));
         JSONObject root = new JSONObject(content);
         JSONArray mocks = root.getJSONArray("mocks");
@@ -167,20 +186,7 @@ public class MockFileService {
         endpointMocks.put(endpoint, mocks);
     }
 
-    private String findFileNameForEndpoint(String targetEndpoint) throws IOException {
-        File folder = new File(mockFilesPath);
-        File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-        if (listOfFiles == null) return null;
-
-        for (File file : listOfFiles) {
-            try (FileReader reader = new FileReader(file)) {
-                JSONTokener tokener = new JSONTokener(reader);
-                JSONObject root = new JSONObject(tokener);
-                if (targetEndpoint.equals(root.optString("endpoint"))) {
-                    return file.getName();
-                }
-            }
-        }
-        return null;
+    private String findFileNameForEndpoint(String targetEndpoint) {
+        return endpointToFileMap.get(targetEndpoint);
     }
 }

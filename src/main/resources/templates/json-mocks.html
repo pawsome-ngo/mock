@@ -15,26 +15,43 @@
 <div class="container mt-5">
     <h2 class="text-center">JSON-Based Mock Endpoints</h2>
 
-    <h3 class="mt-5">Available Endpoints</h3>
-    <div class="list-group mt-3">
-        <div th:each="endpoint : ${endpoints}" class="list-group-item d-flex justify-content-between align-items-center">
-            <a th:href="@{/details(endpoint=${endpoint})}" th:text="${endpoint}" class="flex-grow-1 text-decoration-none text-dark"></a>
-            <button class="btn btn-danger btn-sm"
-                    th:attr="data-bs-endpoint=${endpoint}"
-                    data-bs-toggle="modal"
-                    data-bs-target="#deleteEndpointModal">
-                Delete
-            </button>
+    <h3 class="mt-5">Available Endpoints by Category</h3>
+    <div class="accordion mt-3" id="categoriesAccordion">
+        <div th:each="entry : ${categorizedEndpoints}" class="accordion-item">
+            <h2 class="accordion-header" th:id="'heading' + ${entry.key}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${entry.key}" aria-expanded="false">
+                    <strong th:text="${entry.key}"></strong>
+                </button>
+            </h2>
+            <div th:id="'collapse' + ${entry.key}" class="accordion-collapse collapse" data-bs-parent="#categoriesAccordion">
+                <div class="list-group list-group-flush">
+                    <div th:each="endpoint : ${entry.value}" class="list-group-item d-flex justify-content-between align-items-center">
+                        <a th:href="@{/details(endpoint=${endpoint})}" th:text="${endpoint}" class="flex-grow-1 text-decoration-none text-dark"></a>
+                        <button class="btn btn-danger btn-sm"
+                                th:attr="data-bs-endpoint=${endpoint}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteEndpointModal">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Form to create a new endpoint -->
     <div class="card mt-5">
         <div class="card-body">
             <h5 class="card-title">Create New Mock Endpoint</h5>
-            <div class="input-group">
-                <input type="text" id="newEndpointInput" class="form-control" />
-                <button class="btn btn-primary" type="button" onclick="createNewEndpoint()">Create</button>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" id="newCategoryInput" class="form-control" placeholder="Category (e.g., user-api)">
+                </div>
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" id="newEndpointInput" class="form-control" placeholder="/api/v1/new-endpoint">
+                        <button class="btn btn-primary" type="button" onclick="createNewEndpoint()">Create</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -85,17 +102,22 @@
     }
 
     function createNewEndpoint() {
+        const category = document.getElementById('newCategoryInput').value;
         const endpoint = document.getElementById('newEndpointInput').value;
-        if (!endpoint) {
-            alert('Please enter an endpoint path.');
+        if (!category || !endpoint) {
+            alert('Please enter both a category and an endpoint path.');
             return;
         }
+
+        const payload = {
+            category: category,
+            endpoint: endpoint
+        };
+
         fetch('/create', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ endpoint: endpoint }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
         })
         .then(handleResponse)
         .then(data => {

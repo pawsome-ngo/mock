@@ -27,7 +27,7 @@ public class MockAdminController {
 
     @GetMapping("/")
     public String listJsonMocks(Model model) {
-        model.addAttribute("endpoints", mockFileService.getEndpoints());
+        model.addAttribute("categorizedEndpoints", mockFileService.getCategorizedEndpoints());
         return "json-mocks";
     }
 
@@ -57,6 +57,12 @@ public class MockAdminController {
 
     @Data
     private static class CreateEndpointPayload {
+        private String category;
+        private String endpoint;
+    }
+
+    @Data
+    private static class DeleteEndpointPayload {
         private String endpoint;
     }
 
@@ -83,7 +89,7 @@ public class MockAdminController {
     @ResponseBody
     public ResponseEntity<String> createEndpoint(@RequestBody CreateEndpointPayload payload) {
         try {
-            mockFileService.createEndpointFile(payload.getEndpoint());
+            mockFileService.createEndpointFile(payload.getCategory(), payload.getEndpoint());
             return new ResponseEntity<>("{\"message\": \"Endpoint created successfully.\"}", HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>("{\"error\": \"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -101,9 +107,6 @@ public class MockAdminController {
         }
     }
 
-    /**
-     * NEW METHOD: Handles updating an existing mock case.
-     */
     @PostMapping("/update-mock")
     @ResponseBody
     public ResponseEntity<String> updateMock(@RequestBody UpdateMockPayload payload) {
@@ -117,7 +120,7 @@ public class MockAdminController {
 
     @PostMapping("/delete-endpoint")
     @ResponseBody
-    public ResponseEntity<String> deleteEndpoint(@RequestBody CreateEndpointPayload payload) {
+    public ResponseEntity<String> deleteEndpoint(@RequestBody DeleteEndpointPayload payload) {
         try {
             mockFileService.deleteEndpointFile(payload.getEndpoint());
             return new ResponseEntity<>("{\"message\": \"Endpoint deleted successfully.\"}", HttpStatus.OK);

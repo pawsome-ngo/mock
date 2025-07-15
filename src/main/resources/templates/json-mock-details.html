@@ -33,7 +33,6 @@
                 <div class="accordion-body">
                     <pre><code th:text="${mock.content}"></code></pre>
                     <div class="text-end mt-2">
-                        <!-- NEW: Edit Button -->
                         <button class="btn btn-secondary btn-sm"
                                 th:attr="data-bs-endpoint=${endpoint}, data-bs-index=${iterStat.index}, 'data-bs-content'=${mock.content}"
                                 data-bs-toggle="modal"
@@ -61,7 +60,7 @@
 
 <!-- Add Mock Modal -->
 <div class="modal fade" id="addMockModal" tabindex="-1" aria-labelledby="addMockModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl"> <!-- Made modal wider -->
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addMockModalLabel">Add New Mock Case</h5>
@@ -85,6 +84,7 @@
                     <div class="mb-3">
                         <label for="addMockHeaders" class="form-label">Headers (JSON)</label>
                         <textarea class="form-control" id="addMockHeaders" rows="3">{}</textarea>
+                        <button type="button" class="btn btn-info btn-sm mt-2" onclick="beautifyJson('addMockHeaders')">Beautify</button>
                     </div>
                     <div class="mb-3">
                         <label for="addMockMatchKey" class="form-label">Match Key (leave blank for full body match)</label>
@@ -93,6 +93,7 @@
                     <div class="mb-3">
                         <label for="addMockRequestBody" class="form-label">Request Body (JSON)</label>
                         <textarea class="form-control" id="addMockRequestBody" rows="5"></textarea>
+                        <button type="button" class="btn btn-info btn-sm mt-2" onclick="beautifyJson('addMockRequestBody')">Beautify</button>
                     </div>
                     <hr>
                     <h5>Response</h5>
@@ -103,6 +104,7 @@
                     <div class="mb-3">
                         <label for="addMockResponseBody" class="form-label">Response Body (JSON)</label>
                         <textarea class="form-control" id="addMockResponseBody" rows="5"></textarea>
+                        <button type="button" class="btn btn-info btn-sm mt-2" onclick="beautifyJson('addMockResponseBody')">Beautify</button>
                     </div>
                 </form>
             </div>
@@ -114,9 +116,9 @@
     </div>
 </div>
 
-<!-- NEW: Edit Mock Modal -->
+<!-- Edit Mock Modal -->
 <div class="modal fade" id="editMockModal" tabindex="-1" aria-labelledby="editMockModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl"> <!-- Made modal wider -->
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editMockModalLabel">Edit Mock Case</h5>
@@ -141,6 +143,7 @@
                     <div class="mb-3">
                         <label for="editMockHeaders" class="form-label">Headers (JSON)</label>
                         <textarea class="form-control" id="editMockHeaders" rows="3"></textarea>
+                        <button type="button" class="btn btn-info btn-sm mt-2" onclick="beautifyJson('editMockHeaders')">Beautify</button>
                     </div>
                     <div class="mb-3">
                         <label for="editMockMatchKey" class="form-label">Match Key</label>
@@ -149,6 +152,7 @@
                     <div class="mb-3">
                         <label for="editMockRequestBody" class="form-label">Request Body (JSON)</label>
                         <textarea class="form-control" id="editMockRequestBody" rows="5"></textarea>
+                        <button type="button" class="btn btn-info btn-sm mt-2" onclick="beautifyJson('editMockRequestBody')">Beautify</button>
                     </div>
                     <hr>
                     <h5>Response</h5>
@@ -159,6 +163,7 @@
                     <div class="mb-3">
                         <label for="editMockResponseBody" class="form-label">Response Body (JSON)</label>
                         <textarea class="form-control" id="editMockResponseBody" rows="5"></textarea>
+                        <button type="button" class="btn btn-info btn-sm mt-2" onclick="beautifyJson('editMockResponseBody')">Beautify</button>
                     </div>
                 </form>
             </div>
@@ -244,7 +249,6 @@
         }
     });
 
-    // NEW: Event listener for the Edit Modal
     const editMockModal = document.getElementById('editMockModal');
     editMockModal.addEventListener('show.bs.modal', function (event) {
         const button = event.relatedTarget;
@@ -290,7 +294,6 @@
         .catch(handleError);
     }
 
-    // NEW: Function to save changes from the Edit Modal
     function updateMock() {
         const updatedMock = buildMockObjectFromForm('edit');
         if (!updatedMock) return;
@@ -341,6 +344,21 @@
                 body: responseBody
             }
         };
+    }
+
+    // NEW: Reusable function to beautify JSON in a textarea
+    function beautifyJson(textareaId) {
+        const textarea = document.getElementById(textareaId);
+        try {
+            const ugly = textarea.value;
+            if (ugly.trim()) {
+                const obj = JSON.parse(ugly);
+                const pretty = JSON.stringify(obj, undefined, 4);
+                textarea.value = pretty;
+            }
+        } catch (e) {
+            alert('Invalid JSON. Cannot beautify.');
+        }
     }
 
     function handleResponse(response) {
