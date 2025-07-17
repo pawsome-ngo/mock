@@ -29,6 +29,7 @@ public class MockFileService {
 
     private final Map<String, JSONArray> endpointMocks = new ConcurrentHashMap<>();
     private final Map<String, String> endpointToFileMap = new ConcurrentHashMap<>();
+    private final Map<String, String> endpointToNameMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -46,6 +47,7 @@ public class MockFileService {
     public void loadMocks() throws IOException {
         endpointMocks.clear();
         endpointToFileMap.clear();
+        endpointToNameMap.clear();
         File baseDir = new File(mockFilesPath);
         scanDirectory(baseDir, "");
     }
@@ -61,24 +63,33 @@ public class MockFileService {
                 try (FileReader reader = new FileReader(file)) {
                     JSONTokener tokener = new JSONTokener(reader);
                     JSONObject root = new JSONObject(tokener);
+                    String name = root.getString("name");
                     String endpoint = root.getString("endpoint");
                     JSONArray mocks = root.getJSONArray("mocks");
+
                     endpointMocks.put(endpoint, mocks);
                     endpointToFileMap.put(endpoint, currentPath + file.getName());
-                    System.out.println("Loaded mock for endpoint: " + endpoint + " from " + currentPath + file.getName());
+                    endpointToNameMap.put(endpoint, name);
+                    System.out.println("Loaded mock: '" + name + "' for endpoint: " + endpoint);
                 }
             }
         }
     }
 
-    public Map<String, List<String>> getCategorizedEndpoints() {
-        Map<String, List<String>> categorized = new HashMap<>();
+    public Map<String, List<Map<String, String>>> getCategorizedEndpoints() {
+        Map<String, List<Map<String, String>>> categorized = new HashMap<>();
         endpointToFileMap.forEach((endpoint, filePath) -> {
             String category = new File(filePath).getParent();
             if (category == null) {
                 category = "Uncategorized";
             }
-            categorized.computeIfAbsent(category, k -> new ArrayList<>()).add(endpoint);
+            String name = endpointToNameMap.get(endpoint);
+
+            Map<String, String> endpointInfo = new HashMap<>();
+            endpointInfo.put("name", name);
+            endpointInfo.put("endpoint", endpoint);
+
+            categorized.computeIfAbsent(category, k -> new ArrayList<>()).add(endpointInfo);
         });
         return categorized;
     }
@@ -87,22 +98,23 @@ public class MockFileService {
         return endpointMocks.get(endpoint);
     }
 
-    public void createEndpointFile(String category, String endpoint) throws IOException {
-        // Create category subfolder if it doesn't exist
+    public void createEndpointFile(String category, String name, String endpoint) throws IOException {
         Path categoryPath = Paths.get(mockFilesPath, category);
         if (!Files.exists(categoryPath)) {
             Files.createDirectories(categoryPath);
         }
 
-        String fileName = endpoint.trim().replaceAll("^/|/$", "").replaceAll("/", "-") + ".json";
+        // Generate filename from the descriptive name
+        String fileName = name.trim().toLowerCase().replaceAll("\\s+", "-") + ".json";
         Path filePath = categoryPath.resolve(fileName);
         File file = filePath.toFile();
 
         if (file.exists()) {
-            throw new IOException("A mock file for this endpoint already exists.");
+            throw new IOException("A mock file with this name already exists in the category.");
         }
 
         JSONObject root = new JSONObject();
+        root.put("name", name);
         root.put("endpoint", endpoint);
         root.put("mocks", new JSONArray());
 
@@ -112,6 +124,7 @@ public class MockFileService {
 
         endpointMocks.put(endpoint, new JSONArray());
         endpointToFileMap.put(endpoint, category + "/" + fileName);
+        endpointToNameMap.put(endpoint, name);
     }
 
     public void addMockToFile(String endpoint, String newMockJson) throws IOException {
@@ -162,6 +175,7 @@ public class MockFileService {
         Files.delete(filePath);
         endpointMocks.remove(endpoint);
         endpointToFileMap.remove(endpoint);
+        endpointToNameMap.remove(endpoint);
     }
 
     public void deleteMockFromFile(String endpoint, int index) throws IOException {

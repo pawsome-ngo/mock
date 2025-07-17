@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +26,13 @@ public class MockAdminController {
 
     @Autowired
     private MockFileService mockFileService;
+
+    private final WebClient webClient;
+
+    // Inject WebClient.Builder to create a WebClient instance
+    public MockAdminController(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder.baseUrl("http://localhost:8080").build();
+    }
 
     @GetMapping("/")
     public String listJsonMocks(Model model) {
@@ -56,8 +65,45 @@ public class MockAdminController {
     }
 
     @Data
+    private static class TestMockPayload {
+        private String endpoint;
+        private String method;
+        private Map<String, String> headers;
+        private String body;
+    }
+
+    /**
+     * NEW METHOD: Executes a test request against a mock endpoint using WebClient.
+     * @param payload The details of the mock to test.
+     * @return A Mono containing the response from the mock endpoint.
+     */
+    @PostMapping("/test-mock")
+    @ResponseBody
+    public Mono<ResponseEntity<String>> testMock(@RequestBody TestMockPayload payload) {
+        WebClient.RequestBodySpec request = webClient
+                .method(org.springframework.http.HttpMethod.valueOf(payload.getMethod()))
+                .uri(payload.getEndpoint())
+                .headers(httpHeaders -> payload.getHeaders().forEach(httpHeaders::add));
+
+        WebClient.ResponseSpec responseSpec;
+        if (payload.getBody() != null && !payload.getBody().isEmpty()) {
+            responseSpec = request.bodyValue(payload.getBody()).retrieve();
+        } else {
+            responseSpec = request.retrieve();
+        }
+
+        return responseSpec
+                .toEntity(String.class)
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error during test: " + e.getMessage())));
+    }
+
+    // --- Other CRUD methods remain the same ---
+
+    @Data
     private static class CreateEndpointPayload {
         private String category;
+        private String name;
         private String endpoint;
     }
 
@@ -89,7 +135,7 @@ public class MockAdminController {
     @ResponseBody
     public ResponseEntity<String> createEndpoint(@RequestBody CreateEndpointPayload payload) {
         try {
-            mockFileService.createEndpointFile(payload.getCategory(), payload.getEndpoint());
+            mockFileService.createEndpointFile(payload.getCategory(), payload.getName(), payload.getEndpoint());
             return new ResponseEntity<>("{\"message\": \"Endpoint created successfully.\"}", HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>("{\"error\": \"" + e.getMessage() + "\"}", HttpStatus.INTERNAL_SERVER_ERROR);

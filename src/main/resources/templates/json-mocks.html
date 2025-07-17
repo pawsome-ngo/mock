@@ -25,10 +25,10 @@
             </h2>
             <div th:id="'collapse' + ${entry.key}" class="accordion-collapse collapse" data-bs-parent="#categoriesAccordion">
                 <div class="list-group list-group-flush">
-                    <div th:each="endpoint : ${entry.value}" class="list-group-item d-flex justify-content-between align-items-center">
-                        <a th:href="@{/details(endpoint=${endpoint})}" th:text="${endpoint}" class="flex-grow-1 text-decoration-none text-dark"></a>
+                    <div th:each="info : ${entry.value}" class="list-group-item d-flex justify-content-between align-items-center">
+                        <a th:href="@{/details(endpoint=${info.endpoint})}" th:text="${info.name}" class="flex-grow-1 text-decoration-none text-dark"></a>
                         <button class="btn btn-danger btn-sm"
-                                th:attr="data-bs-endpoint=${endpoint}"
+                                th:attr="data-bs-endpoint=${info.endpoint}"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteEndpointModal">
                             Delete
@@ -43,10 +43,13 @@
         <div class="card-body">
             <h5 class="card-title">Create New Mock Endpoint</h5>
             <div class="row g-2">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" id="newCategoryInput" class="form-control" placeholder="Category (e.g., user-api)">
                 </div>
-                <div class="col-md-8">
+                <div class="col-md-4">
+                    <input type="text" id="newNameInput" class="form-control" placeholder="Endpoint Name (e.g., User API)">
+                </div>
+                <div class="col-md-5">
                     <div class="input-group">
                         <input type="text" id="newEndpointInput" class="form-control" placeholder="/api/v1/new-endpoint">
                         <button class="btn btn-primary" type="button" onclick="createNewEndpoint()">Create</button>
@@ -103,14 +106,16 @@
 
     function createNewEndpoint() {
         const category = document.getElementById('newCategoryInput').value;
+        const name = document.getElementById('newNameInput').value;
         const endpoint = document.getElementById('newEndpointInput').value;
-        if (!category || !endpoint) {
-            alert('Please enter both a category and an endpoint path.');
+        if (!category || !name || !endpoint) {
+            alert('Please fill in all fields: Category, Name, and Endpoint.');
             return;
         }
 
         const payload = {
             category: category,
+            name: name,
             endpoint: endpoint
         };
 
