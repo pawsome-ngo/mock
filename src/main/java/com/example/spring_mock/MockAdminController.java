@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -29,7 +30,6 @@ public class MockAdminController {
 
     private final WebClient webClient;
 
-    // Inject WebClient.Builder to create a WebClient instance
     public MockAdminController(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.baseUrl("http://localhost:8080").build();
     }
@@ -73,9 +73,9 @@ public class MockAdminController {
     }
 
     /**
-     * NEW METHOD: Executes a test request against a mock endpoint using WebClient.
+     * UPDATED METHOD: Executes a test request and correctly handles 4xx/5xx responses.
      * @param payload The details of the mock to test.
-     * @return A Mono containing the response from the mock endpoint.
+     * @return A Mono containing the actual response from the mock endpoint, including error statuses.
      */
     @PostMapping("/test-mock")
     @ResponseBody
@@ -83,7 +83,13 @@ public class MockAdminController {
         WebClient.RequestBodySpec request = webClient
                 .method(org.springframework.http.HttpMethod.valueOf(payload.getMethod()))
                 .uri(payload.getEndpoint())
-                .headers(httpHeaders -> payload.getHeaders().forEach(httpHeaders::add));
+                .headers(httpHeaders -> {
+                    // Ensure Content-Type is set if there is a body
+                    if (payload.getBody() != null && !payload.getBody().isEmpty()) {
+                        httpHeaders.add("Content-Type", "application/json");
+                    }
+                    payload.getHeaders().forEach(httpHeaders::add);
+                });
 
         WebClient.ResponseSpec responseSpec;
         if (payload.getBody() != null && !payload.getBody().isEmpty()) {
@@ -94,8 +100,16 @@ public class MockAdminController {
 
         return responseSpec
                 .toEntity(String.class)
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Error during test: " + e.getMessage())));
+                .onErrorResume(WebClientResponseException.class, ex -> {
+                    // This block catches 4xx and 5xx errors and treats them as a valid test result.
+                    // It returns the original status code and response body from the error.
+                    return Mono.just(ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString()));
+                })
+                .onErrorResume(e -> {
+                    // This block catches other errors (e.g., connection refused) and reports them as a 500.
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Error during test: " + e.getMessage()));
+                });
     }
 
     // --- Other CRUD methods remain the same ---
