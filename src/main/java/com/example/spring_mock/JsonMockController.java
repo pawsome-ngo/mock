@@ -30,7 +30,7 @@ public class JsonMockController {
 
     /**
      * A "catch-all" endpoint that intercepts all incoming requests that do not match a more specific
-     * controller (like the UI endpoints in MockControllerUI). It acts as the engine for the mock server.
+     * controller (like the UI endpoints in MockAdminController). It acts as the engine for the mock server.
      * It dynamically finds the appropriate mock response by matching the request's URI, method, headers, and body.
      *
      * @param request The incoming HttpServletRequest, used to get the URI and method.
@@ -44,7 +44,10 @@ public class JsonMockController {
             @RequestHeader Map<String, String> headers,
             @RequestBody(required = false) String requestBodyString) {
 
-        String requestURI = request.getRequestURI();
+        // UPDATED: Remove the context path to get the actual endpoint for lookup.
+        String contextPath = request.getContextPath();
+        String requestURI = request.getRequestURI().substring(contextPath.length());
+
         JSONArray mocks = mockFileService.getMocksForEndpoint(requestURI);
 
         // If no mock file is configured for the requested endpoint, return 404.

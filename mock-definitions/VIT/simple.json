@@ -1,0 +1,17 @@
+{
+    "endpoint": "/api/work",
+    "name": "simple",
+    "mocks": [{
+        "request": {
+            "headers": {"Content-Type": "application/json"},
+            "method": "POST",
+            "matchKey": null,
+            "body": {"name": "Jon"}
+        },
+        "response": {
+            "body": {"name": "application"},
+            "status": 404
+        },
+        "name": "one"
+    }]
+}

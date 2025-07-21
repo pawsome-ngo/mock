@@ -31,7 +31,8 @@ public class MockAdminController {
     private final WebClient webClient;
 
     public MockAdminController(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8080").build();
+        // UPDATED: Added the context path to the base URL for the test client.
+        this.webClient = webClientBuilder.baseUrl("http://localhost:8080/vcss-mock").build();
     }
 
     @GetMapping("/")
