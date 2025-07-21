@@ -31,7 +31,6 @@ public class MockAdminController {
     private final WebClient webClient;
 
     public MockAdminController(WebClient.Builder webClientBuilder) {
-        // UPDATED: Added the context path to the base URL for the test client.
         this.webClient = webClientBuilder.baseUrl("http://localhost:8080/vcss-mock").build();
     }
 
@@ -73,19 +72,14 @@ public class MockAdminController {
         private String body;
     }
 
-    /**
-     * UPDATED METHOD: Executes a test request and correctly handles 4xx/5xx responses.
-     * @param payload The details of the mock to test.
-     * @return A Mono containing the actual response from the mock endpoint, including error statuses.
-     */
-    @PostMapping("/test-mock")
+    // UPDATED: All UI actions are now under the /admin path
+    @PostMapping("/admin/test-mock")
     @ResponseBody
     public Mono<ResponseEntity<String>> testMock(@RequestBody TestMockPayload payload) {
         WebClient.RequestBodySpec request = webClient
                 .method(org.springframework.http.HttpMethod.valueOf(payload.getMethod()))
                 .uri(payload.getEndpoint())
                 .headers(httpHeaders -> {
-                    // Ensure Content-Type is set if there is a body
                     if (payload.getBody() != null && !payload.getBody().isEmpty()) {
                         httpHeaders.add("Content-Type", "application/json");
                     }
@@ -101,19 +95,14 @@ public class MockAdminController {
 
         return responseSpec
                 .toEntity(String.class)
-                .onErrorResume(WebClientResponseException.class, ex -> {
-                    // This block catches 4xx and 5xx errors and treats them as a valid test result.
-                    // It returns the original status code and response body from the error.
-                    return Mono.just(ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString()));
-                })
-                .onErrorResume(e -> {
-                    // This block catches other errors (e.g., connection refused) and reports them as a 500.
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Error during test: " + e.getMessage()));
-                });
+                .onErrorResume(WebClientResponseException.class, ex ->
+                        Mono.just(ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString()))
+                )
+                .onErrorResume(e ->
+                        Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Error during test: " + e.getMessage()))
+                );
     }
-
-    // --- Other CRUD methods remain the same ---
 
     @Data
     private static class CreateEndpointPayload {
@@ -146,7 +135,7 @@ public class MockAdminController {
         private String updatedMockJson;
     }
 
-    @PostMapping("/create")
+    @PostMapping("/admin/create")
     @ResponseBody
     public ResponseEntity<String> createEndpoint(@RequestBody CreateEndpointPayload payload) {
         try {
@@ -157,7 +146,7 @@ public class MockAdminController {
         }
     }
 
-    @PostMapping("/add")
+    @PostMapping("/admin/add")
     @ResponseBody
     public ResponseEntity<String> addMock(@RequestBody AddMockPayload payload) {
         try {
@@ -168,7 +157,7 @@ public class MockAdminController {
         }
     }
 
-    @PostMapping("/update-mock")
+    @PostMapping("/admin/update-mock")
     @ResponseBody
     public ResponseEntity<String> updateMock(@RequestBody UpdateMockPayload payload) {
         try {
@@ -179,7 +168,7 @@ public class MockAdminController {
         }
     }
 
-    @PostMapping("/delete-endpoint")
+    @PostMapping("/admin/delete-endpoint")
     @ResponseBody
     public ResponseEntity<String> deleteEndpoint(@RequestBody DeleteEndpointPayload payload) {
         try {
@@ -190,7 +179,7 @@ public class MockAdminController {
         }
     }
 
-    @PostMapping("/delete-mock")
+    @PostMapping("/admin/delete-mock")
     @ResponseBody
     public ResponseEntity<String> deleteMockCase(@RequestBody DeleteMockPayload payload) {
         try {

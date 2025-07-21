@@ -15,7 +15,7 @@
 <body>
 <nav class="navbar navbar-light bg-light shadow-sm">
     <div class="container-fluid justify-content-center">
-        <a class="navbar-brand" href="/">
+        <a class="navbar-brand" th:href="@{/}">
             <strong>Mock API Creator</strong>
         </a>
     </div>
@@ -59,11 +59,12 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMockModal">
             Add New Mock Case
         </button>
-        <a href="/" class="btn btn-secondary">Back to List</a>
+        <a th:href="@{/}" class="btn btn-secondary">Back to List</a>
     </div>
 </div>
 
-<!-- Add Mock Modal -->
+<!-- Modals (Add, Edit, Delete, Test Result) -->
+<!-- ... (Modal HTML is unchanged and omitted for brevity) ... -->
 <div class="modal fade" id="addMockModal" tabindex="-1" aria-labelledby="addMockModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -120,8 +121,6 @@
         </div>
     </div>
 </div>
-
-<!-- Edit Mock Modal -->
 <div class="modal fade" id="editMockModal" tabindex="-1" aria-labelledby="editMockModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -179,8 +178,6 @@
         </div>
     </div>
 </div>
-
-<!-- Delete Mock Case Modal -->
 <div class="modal fade" id="deleteMockCaseModal" tabindex="-1" aria-labelledby="deleteMockCaseModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -198,8 +195,6 @@
         </div>
     </div>
 </div>
-
-<!-- Test Result Modal -->
 <div class="modal fade" id="testResultModal" tabindex="-1" aria-labelledby="testResultModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -224,6 +219,7 @@
     /*<![CDATA[*/
     const mockDetails = /*[[${mockDetails}]]*/ [];
     const currentEndpoint = /*[[${endpoint}]]*/ '';
+    const contextPath = /*[[@{/}]]*/ '/';
     /*]]>*/
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
@@ -239,7 +235,7 @@
     });
 
     function deleteMockCase() {
-        fetch('/delete-mock', {
+        fetch(contextPath + 'admin/delete-mock', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: endpointToDelete, index: mockIndexToDelete }),
@@ -308,7 +304,7 @@
             endpoint: document.getElementById('addEndpoint').value,
             newMockJson: JSON.stringify(newMock)
         };
-        fetch('/add', {
+        fetch(contextPath + 'admin/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -330,7 +326,7 @@
             index: parseInt(document.getElementById('editMockIndex').value, 10),
             updatedMockJson: JSON.stringify(updatedMock)
         };
-        fetch('/update-mock', {
+        fetch(contextPath + 'admin/update-mock', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -386,7 +382,7 @@
                 body: mock.request.body ? JSON.stringify(mock.request.body) : ''
             };
 
-            fetch('/test-mock', {
+            fetch(contextPath + 'admin/test-mock', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
